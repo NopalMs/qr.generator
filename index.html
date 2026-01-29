@@ -155,8 +155,8 @@
 
         /* --- HEADER SECTION --- */
         #home {
-            min-height: auto; /* Auto height because no profile picture */
-            padding: 100px 20px 40px; /* Adjusted padding */
+            min-height: auto;
+            padding: 100px 20px 40px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -167,7 +167,7 @@
         .intro-card {
             background: var(--glass);
             backdrop-filter: blur(12px);
-            padding: 1.5rem 3rem; /* More horizontal padding for title */
+            padding: 1.5rem 3rem;
             border-radius: 20px;
             box-shadow: var(--shadow-card);
             border: var(--border-thin);
@@ -468,7 +468,7 @@
     </div>
 
     <main>
-        <!-- HEADER SECTION (Tanpa Foto Profil) -->
+        <!-- HEADER SECTION -->
         <section id="home">
             <div class="intro-card">
                 <h1>qr.naufalms <i class="fas fa-qrcode" style="font-size:0.8em; color:var(--primary-blue)"></i></h1>
@@ -718,66 +718,80 @@
             drawQR(text);
         });
 
-        // Drawing Logic
+        // Drawing Logic (FIXED VERSION)
         function drawQR(text) {
             const size = 400;
+            const padding = 20;
             const labelHeight = (state.selectedFrame === 'label-bottom') ? 60 : 0;
+            
+            // Setup Canvas Size
             canvas.width = size;
             canvas.height = size + labelHeight;
+            
+            // Clear & White BG
             ctx.clearRect(0,0, canvas.width, canvas.height);
-
-            // White BG
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Generate QR Temp
+            // Create Temporary Hidden Container for QRCode.js
             const tempDiv = document.createElement('div');
+            tempDiv.style.display = 'none'; // Hide it visually
+            document.body.appendChild(tempDiv); // MUST append to body for library to render canvas
+
+            // Generate QR in temp container
             new QRCode(tempDiv, {
                 text: text,
-                width: size - 40,
-                height: size - 40,
-                colorDark: "#1e3a8a",
+                width: size - (padding * 2),
+                height: size - (padding * 2),
+                colorDark: "#1e3a8a", // Sesuai warna tema (biru tua)
                 colorLight: "#ffffff",
                 correctLevel: QRCode.CorrectLevel.H
             });
 
+            // Wait a tiny bit for the library to paint the internal canvas
             setTimeout(() => {
-                const qrImg = tempDiv.querySelector('img');
-                if(qrImg) {
-                    qrImg.onload = () => {
-                        const padding = 20;
-                        
-                        // Draw Frame Logic
-                        if(state.selectedFrame === 'simple-border') {
-                            ctx.strokeStyle = '#3b82f6';
-                            ctx.lineWidth = 15;
-                            ctx.strokeRect(0,0,size,size);
-                            ctx.drawImage(qrImg, padding, padding, size-(padding*2), size-(padding*2));
-                        } else if (state.selectedFrame === 'dashed') {
-                            ctx.strokeStyle = '#F59E0B';
-                            ctx.lineWidth = 5;
-                            ctx.setLineDash([15, 10]);
-                            ctx.strokeRect(10,10,size-20,size-20);
-                            ctx.setLineDash([]);
-                            ctx.drawImage(qrImg, padding, padding, size-(padding*2), size-(padding*2));
-                        } else if (state.selectedFrame === 'label-bottom') {
-                            ctx.fillStyle = '#3b82f6';
-                            ctx.fillRect(0, size, size, 60);
-                            ctx.drawImage(qrImg, padding, padding, size-(padding*2), size-(padding*2));
-                            
-                            ctx.fillStyle = '#fff';
-                            ctx.font = 'bold 24px Poppins';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-                            ctx.fillText(state.label, size/2, size + 30);
-                        } else {
-                            ctx.drawImage(qrImg, padding, padding, size-(padding*2), size-(padding*2));
-                        }
+                // Try to get the <canvas> element created by the library
+                const qrCanvas = tempDiv.querySelector('canvas');
+                const qrImg = tempDiv.querySelector('img'); // Fallback
 
-                        placeholder.style.display = 'none';
-                        canvas.style.display = 'block';
-                        btnDownload.disabled = false;
-                    };
+                // Use the canvas if available, otherwise use img
+                const source = qrCanvas || qrImg;
+
+                if (source) {
+                    // Draw Frame Logic
+                    if(state.selectedFrame === 'simple-border') {
+                        ctx.strokeStyle = '#3b82f6';
+                        ctx.lineWidth = 15;
+                        ctx.strokeRect(0,0,size,size);
+                        ctx.drawImage(source, padding, padding, size-(padding*2), size-(padding*2));
+                    } else if (state.selectedFrame === 'dashed') {
+                        ctx.strokeStyle = '#F59E0B';
+                        ctx.lineWidth = 5;
+                        ctx.setLineDash([15, 10]);
+                        ctx.strokeRect(10,10,size-20,size-20);
+                        ctx.setLineDash([]);
+                        ctx.drawImage(source, padding, padding, size-(padding*2), size-(padding*2));
+                    } else if (state.selectedFrame === 'label-bottom') {
+                        ctx.fillStyle = '#3b82f6';
+                        ctx.fillRect(0, size, size, 60);
+                        ctx.drawImage(source, padding, padding, size-(padding*2), size-(padding*2));
+                        
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 24px Poppins';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(state.label, size/2, size + 30);
+                    } else {
+                        ctx.drawImage(source, padding, padding, size-(padding*2), size-(padding*2));
+                    }
+
+                    // Clean up: Remove the temporary div from body
+                    document.body.removeChild(tempDiv);
+
+                    // Show Canvas
+                    placeholder.style.display = 'none';
+                    canvas.style.display = 'block';
+                    btnDownload.disabled = false;
                 }
             }, 100);
         }
