@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>qr.naufalms - QR Generator</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Library QRCode.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        /* --- VARIABLES & RESET --- */
+        :root {
+            --primary-blue: #3b82f6;
+            --secondary-blue: #60a5fa;
+            --light-bg: #eff6ff;
+            --white: #ffffff;
+            --text-dark: #1e3a8a;
+            --text-body: #475569;
+            --shadow-soft: 0 10px 30px -10px rgba(59, 130, 246, 0.2);
+            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --glass: rgba(255, 255, 255, 0.9);
+            --border-thin: 1px solid rgba(59, 130, 246, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-body);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* --- BACKGROUND SHAPES --- */
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.6;
+        }
+        .shape-1 {
+            width: 300px;
+            height: 300px;
+            background: var(--secondary-blue);
+            top: -50px;
+            left: -50px;
+        }
+        .shape-2 {
+            width: 400px;
+            height: 400px;
+            background: #bfdbfe;
+            bottom: 100px;
+            right: -100px;
+        }
+
+        /* --- NAVIGATION BUTTON --- */
+        .nav-btn-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: transparent;
+            border: 2px solid var(--primary-blue);
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.15);
+            font-size: 1.2rem;
+            color: var(--primary-blue);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-btn:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: var(--shadow-soft);
+        }
+
+        /* FULL SCREEN MENU OVERLAY */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(239, 246, 255, 0.98);
+            backdrop-filter: blur(10px);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .menu-overlay a {
+            text-decoration: none;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            transition: all 0.3s;
+            position: relative;
+            padding: 10px 20px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .menu-overlay a:hover {
+            color: var(--primary-blue);
+            border-bottom: 2px solid var(--primary-blue);
+            transform: translateY(-5px);
+        }
+
+        .close-menu {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            font-size: 2rem;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .close-menu:hover {
+            color: var(--primary-blue);
+            transform: rotate(90deg);
+        }
+
+        /* --- HEADER SECTION --- */
+        #home {
+            min-height: auto; /* Auto height because no profile picture */
+            padding: 100px 20px 40px; /* Adjusted padding */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .intro-card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            padding: 1.5rem 3rem; /* More horizontal padding for title */
+            border-radius: 20px;
+            box-shadow: var(--shadow-card);
+            border: var(--border-thin);
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .intro-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-blue), var(--secondary-blue), transparent);
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--text-dark);
+            margin: 0;
+        }
+
+        /* --- TOOL SECTION STYLES --- */
+        .tool-container {
+            max-width: 1100px;
+            margin: 0 auto 4rem;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .tool-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Tabs Styling */
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            background: var(--white);
+            border: 1px solid var(--border-thin);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-body);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover {
+            background: #eff6ff;
+            color: var(--primary-blue);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(90deg, var(--primary-blue), var(--secondary-blue));
+            color: var(--white);
+            border-color: transparent;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Form Inputs */
+        .info-card input, 
+        .info-card textarea, 
+        .info-card select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 10px;
+            font-family: inherit;
+            background: #f8fafc;
+            color: var(--text-dark);
+            transition: 0.3s;
+        }
+
+        .info-card input:focus, 
+        .info-card textarea:focus, 
+        .info-card select:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            background: var(--white);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .info-card label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Frame Options */
+        .frame-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .frame-item {
+            border: 2px solid transparent;
+            border-radius: 8px;
+            padding: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            background: var(--light-bg);
+            transition: all 0.2s;
+        }
+
+        .frame-item:hover {
+            background: #dbeafe;
+        }
+
+        .frame-item.selected {
+            border-color: var(--primary-blue);
+            background: #eff6ff;
+            box-shadow: 0 0 0 2px var(--secondary-blue);
+        }
+
+        .frame-preview {
+            height: 40px;
+            width: 40px;
+            background: #ccc;
+            margin: 0 auto 0.5rem;
+            border-radius: 4px;
+        }
+
+        /* Preview Area */
+        .preview-box {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: var(--shadow-card);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            border: var(--border-thin);
+        }
+
+        #qr-canvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: var(--shadow-card);
+            border-radius: 10px;
+        }
+
+        #qr-placeholder {
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            width: 100%;
+        }
+
+        .btn-gen {
+            background: linear-gradient(90deg, var(--primary-blue), var(--secondary-blue));
+            color: white;
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+            grid-column: span 2;
+            transition: 0.3s;
+        }
+
+        .btn-gen:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 0.8rem;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-outline:hover {
+            background: var(--light-bg);
+        }
+
+        .btn-outline:disabled {
+            border-color: #cbd5e1;
+            color: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .btn-reset {
+            background: #fee2e2;
+            border: 2px solid transparent;
+            color: #ef4444;
+            padding: 0.8rem;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-reset:hover {
+            background: #fecaca;
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            color: var(--text-body);
+            border-top: var(--border-thin);
+        }
+
+        /* Toast */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #1e3a8a;
+            color: #fff;
+            text-align: center;
+            border-radius: 12px;
+            padding: 16px;
+            position: fixed;
+            z-index: 2000;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+
+        @media (max-width: 600px) {
+            .tool-container { padding: 0 10px; }
+            .frame-options { grid-template-columns: 1fr 1fr; }
+            #home { padding-top: 80px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Dekorasi Latar Belakang -->
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+
+    <!-- Tombol Navigasi -->
+    <div class="nav-btn-container">
+        <button class="nav-btn" onclick="toggleMenu()" aria-label="Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+
+    <!-- Overlay Menu -->
+    <div class="menu-overlay" id="menuOverlay">
+        <div class="close-menu" onclick="toggleMenu()">
+            <i class="fas fa-times"></i>
+        </div>
+        <a href="#" onclick="toggleMenu()">Home</a>
+        <a href="https://instagram.com/nopaaal.ms" onclick="toggleMenu()" target="_blank">Instagram</a>
+        <a href="mailto:nopalms.iki@gmail.com" onclick="toggleMenu()">Email</a>
+    </div>
+
+    <main>
+        <!-- HEADER SECTION (Tanpa Foto Profil) -->
+        <section id="home">
+            <div class="intro-card">
+                <h1>qr.naufalms <i class="fas fa-qrcode" style="font-size:0.8em; color:var(--primary-blue)"></i></h1>
+            </div>
+        </section>
+
+        <!-- TOOL SECTION -->
+        <section class="tool-container">
+            
+            <!-- KOLOM KIRI: SETTING & INPUT -->
+            <div class="info-card">
+                <!-- Tab Menu -->
+                <div class="tabs" id="type-tabs">
+                    <button class="tab-btn active" data-target="url">URL</button>
+                    <button class="tab-btn" data-target="whatsapp">WhatsApp</button>
+                    <button class="tab-btn" data-target="wifi">WiFi</button>
+                    <button class="tab-btn" data-target="text">Teks</button>
+                    <button class="tab-btn" data-target="email">Email</button>
+                    <button class="tab-btn" data-target="image">Gambar</button>
+                </div>
+
+                <!-- Form Inputs -->
+                <div id="form-container">
+                    <!-- URL -->
+                    <div id="input-url" class="input-group">
+                        <label>Link Tujuan</label>
+                        <input type="url" id="url-text" placeholder="https://website.com">
+                    </div>
+
+                    <!-- WA -->
+                    <div id="input-whatsapp" class="input-group hidden">
+                        <label>Nomor WA (62xxx)</label>
+                        <input type="tel" id="wa-number" placeholder="628123456789">
+                        <label style="margin-top:0.5rem">Pesan Opsional</label>
+                        <input type="text" id="wa-msg" placeholder="Halo...">
+                    </div>
+
+                    <!-- WiFi -->
+                    <div id="input-wifi" class="input-group hidden">
+                        <label>SSID (Nama WiFi)</label>
+                        <input type="text" id="wifi-ssid" placeholder="Nama WiFi">
+                        <label style="margin-top:0.5rem">Password</label>
+                        <input type="text" id="wifi-pass" placeholder="Password">
+                        <label style="margin-top:0.5rem">Keamanan</label>
+                        <select id="wifi-type">
+                            <option value="WPA">WPA/WPA2</option>
+                            <option value="WEP">WEP</option>
+                            <option value="nopass">Tidak Ada Password</option>
+                        </select>
+                    </div>
+
+                    <!-- Text -->
+                    <div id="input-text" class="input-group hidden">
+                        <label>Isi Teks</label>
+                        <textarea id="text-content" rows="4" placeholder="Tulis sesuatu..."></textarea>
+                    </div>
+
+                    <!-- Email -->
+                    <div id="input-email" class="input-group hidden">
+                        <label>Alamat Email</label>
+                        <input type="email" id="email-address" placeholder="nama@gmail.com">
+                        <label style="margin-top:0.5rem">Subjek</label>
+                        <input type="text" id="email-subject" placeholder="Judul">
+                    </div>
+
+                    <!-- Image Upload -->
+                    <div id="input-image" class="input-group hidden">
+                        <label>Upload Gambar (Kecil)</label>
+                        <input type="file" id="img-file" accept="image/*">
+                        <small style="color:var(--text-secondary); font-size:0.8rem">Gunakan gambar sangat kecil.</small>
+                        <button type="button" id="btn-preview-img" class="btn-outline" style="margin-top:0.5rem; width:100%; font-size:0.8rem;">Ambil Data Gambar</button>
+                        <input type="hidden" id="img-data-base64">
+                    </div>
+                </div>
+
+                <!-- Frame Settings -->
+                <div style="margin-top: 2rem;">
+                    <h3 style="margin-bottom:1rem; color:var(--text-dark); font-size:1.1rem;">Pilih Gaya Frame</h3>
+                    <div class="frame-options" id="frame-selector">
+                        <div class="frame-item selected" data-frame="none">
+                            <div class="frame-preview" style="background:transparent; border:1px solid #ccc;"></div>
+                            <span>Polos</span>
+                        </div>
+                        <div class="frame-item" data-frame="simple-border">
+                            <div class="frame-preview" style="border:4px solid var(--primary-blue)"></div>
+                            <span>Border</span>
+                        </div>
+                        <div class="frame-item" data-frame="label-bottom">
+                            <div class="frame-preview" style="background:var(--primary-blue); height:30px;"></div>
+                            <span>Label</span>
+                        </div>
+                        <div class="frame-item" data-frame="dashed">
+                            <div class="frame-preview" style="border:2px dashed #F59E0B"></div>
+                            <span>Putus-putus</span>
+                        </div>
+                    </div>
+
+                    <div id="label-input-group" style="display:none; margin-bottom:1rem;">
+                        <label>Teks Label</label>
+                        <input type="text" id="label-text" value="SCAN ME" style="margin-bottom:0;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- KOLOM KANAN: PREVIEW -->
+            <div class="preview-box">
+                <div id="qr-placeholder">
+                    <i class="fas fa-qrcode" style="font-size: 4rem; color: #e2e8f0; margin-bottom:1rem;"></i>
+                    <p style="color:#94a3b8">Hasil QR Code akan muncul di sini</p>
+                </div>
+                <canvas id="qr-canvas" style="display:none;"></canvas>
+
+                <div class="action-buttons">
+                    <button id="btn-generate" class="btn-gen">
+                        <i class="fas fa-magic"></i> Generate QR
+                    </button>
+                    <button id="btn-download" class="btn-outline" disabled>
+                        <i class="fas fa-download"></i> PNG
+                    </button>
+                    <button id="btn-reset" class="btn-reset">
+                        <i class="fas fa-trash-alt"></i> Reset
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 qr.naufalms - Created with ❤️</p>
+    </footer>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast">Pesan notifikasi</div>
+
+    <script>
+        // --- LOGIC NAVIGASI & MENU ---
+        function toggleMenu() {
+            const overlay = document.getElementById('menuOverlay');
+            overlay.classList.toggle('active');
+        }
+
+        // --- LOGIC QR CODE ---
+        
+        const state = {
+            currentType: 'url',
+            selectedFrame: 'none',
+            qrText: '',
+            label: 'SCAN ME'
+        };
+
+        // DOM Elements
+        const tabs = document.querySelectorAll('.tab-btn');
+        const inputGroups = document.querySelectorAll('.input-group');
+        const btnGenerate = document.getElementById('btn-generate');
+        const btnDownload = document.getElementById('btn-download');
+        const btnReset = document.getElementById('btn-reset');
+        const canvas = document.getElementById('qr-canvas');
+        const ctx = canvas.getContext('2d');
+        const placeholder = document.getElementById('qr-placeholder');
+        const frameItems = document.querySelectorAll('.frame-item');
+        const labelInput = document.getElementById('label-text');
+        const labelGroup = document.getElementById('label-input-group');
+        const imgPreviewBtn = document.getElementById('btn-preview-img');
+        const imgInput = document.getElementById('img-file');
+
+        // Tab Switching
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                inputGroups.forEach(group => group.classList.add('hidden'));
+                document.getElementById(`input-${tab.getAttribute('data-target')}`).classList.remove('hidden');
+                
+                state.currentType = tab.getAttribute('data-target');
+            });
+        });
+
+        // Frame Selection
+        frameItems.forEach(item => {
+            item.addEventListener('click', () => {
+                frameItems.forEach(f => f.classList.remove('selected'));
+                item.classList.add('selected');
+                state.selectedFrame = item.getAttribute('data-frame');
+
+                if(state.selectedFrame === 'label-bottom') {
+                    labelGroup.style.display = 'block';
+                } else {
+                    labelGroup.style.display = 'none';
+                }
+            });
+        });
+
+        // Image Preview Logic
+        imgPreviewBtn.addEventListener('click', () => {
+            const file = imgInput.files[0];
+            if (!file) return showToast("Pilih file dulu!");
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('img-data-base64').value = e.target.result;
+                showToast("Gambar siap digunakan!");
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Generate Logic
+        btnGenerate.addEventListener('click', () => {
+            let text = "";
+            switch(state.currentType) {
+                case 'url':
+                    const u = document.getElementById('url-text').value.trim();
+                    if(!u) return showToast("Masukkan URL!");
+                    text = u;
+                    break;
+                case 'whatsapp':
+                    let wn = document.getElementById('wa-number').value.replace(/\D/g, '');
+                    let wm = document.getElementById('wa-msg').value;
+                    if(!wn) return showToast("Masukkan nomor WA!");
+                    text = `https://wa.me/${wn}?text=${encodeURIComponent(wm)}`;
+                    break;
+                case 'wifi':
+                    const ssid = document.getElementById('wifi-ssid').value;
+                    const pass = document.getElementById('wifi-pass').value;
+                    const type = document.getElementById('wifi-type').value;
+                    if(!ssid) return showToast("Masukkan SSID!");
+                    text = `WIFI:S:${ssid};T:${type};P:${pass};;`;
+                    break;
+                case 'text':
+                    const txt = document.getElementById('text-content').value;
+                    if(!txt) return showToast("Masukkan teks!");
+                    text = txt;
+                    break;
+                case 'email':
+                    const em = document.getElementById('email-address').value;
+                    const sub = document.getElementById('email-subject').value;
+                    if(!em) return showToast("Masukkan email!");
+                    text = `mailto:${em}?subject=${encodeURIComponent(sub)}`;
+                    break;
+                case 'image':
+                    const img = document.getElementById('img-data-base64').value;
+                    if(!img) return showToast("Upload gambar & klik ambil data!");
+                    text = img;
+                    break;
+            }
+            state.qrText = text;
+            state.label = labelInput.value;
+            drawQR(text);
+        });
+
+        // Drawing Logic
+        function drawQR(text) {
+            const size = 400;
+            const labelHeight = (state.selectedFrame === 'label-bottom') ? 60 : 0;
+            canvas.width = size;
+            canvas.height = size + labelHeight;
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+
+            // White BG
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Generate QR Temp
+            const tempDiv = document.createElement('div');
+            new QRCode(tempDiv, {
+                text: text,
+                width: size - 40,
+                height: size - 40,
+                colorDark: "#1e3a8a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            setTimeout(() => {
+                const qrImg = tempDiv.querySelector('img');
+                if(qrImg) {
+                    qrImg.onload = () => {
+                        const padding = 20;
+                        
+                        // Draw Frame Logic
+                        if(state.selectedFrame === 'simple-border') {
+                            ctx.strokeStyle = '#3b82f6';
+                            ctx.lineWidth = 15;
+                            ctx.strokeRect(0,0,size,size);
+                            ctx.drawImage(qrImg, padding, padding, size-(padding*2), size-(padding*2));
+                        } else if (state.selectedFrame === 'dashed') {
+                            ctx.strokeStyle = '#F59E0B';
+                            ctx.lineWidth = 5;
+                            ctx.setLineDash([15, 10]);
+                            ctx.strokeRect(10,10,size-20,size-20);
+                            ctx.setLineDash([]);
+                            ctx.drawImage(qrImg, padding, padding, size-(padding*2), size-(padding*2));
+                        } else if (state.selectedFrame === 'label-bottom') {
+                            ctx.fillStyle = '#3b82f6';
+                            ctx.fillRect(0, size, size, 60);
+                            ctx.drawImage(qrImg, padding, padding, size-(padding*2), size-(padding*2));
+                            
+                            ctx.fillStyle = '#fff';
+                            ctx.font = 'bold 24px Poppins';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(state.label, size/2, size + 30);
+                        } else {
+                            ctx.drawImage(qrImg, padding, padding, size-(padding*2), size-(padding*2));
+                        }
+
+                        placeholder.style.display = 'none';
+                        canvas.style.display = 'block';
+                        btnDownload.disabled = false;
+                    };
+                }
+            }, 100);
+        }
+
+        // Download Logic
+        btnDownload.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = `qr-naufalms-${Date.now()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        });
+
+        // Reset Logic
+        btnReset.addEventListener('click', () => {
+            document.querySelectorAll('input, textarea').forEach(el => {
+                if(el.type !== 'color' && el.type !== 'button' && el.type !== 'submit') el.value = '';
+            });
+            document.getElementById('wifi-type').value = 'WPA';
+            
+            // Reset UI
+            tabs.forEach(t => t.classList.remove('active'));
+            tabs[0].classList.add('active');
+            inputGroups.forEach(g => {
+                if(g.id !== 'input-url') g.classList.add('hidden');
+            });
+            
+            frameItems.forEach(f => f.classList.remove('selected'));
+            frameItems[0].classList.add('selected');
+            labelGroup.style.display = 'none';
+
+            canvas.style.display = 'none';
+            placeholder.style.display = 'block';
+            btnDownload.disabled = true;
+            showToast("Form di-reset.");
+        });
+
+        // Toast Function
+        function showToast(msg) {
+            const t = document.getElementById("toast");
+            t.innerText = msg;
+            t.className = "show";
+            setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000);
+        }
+    </script>
+</body>
+</html>
